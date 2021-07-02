@@ -5,7 +5,7 @@ date: "02/07/2021"
 output: html_document
 ---
 
-#  EXPLORATIONS CARTOGRAPHIQUES À L’ÉCHELLE RÉGIONALE 
+# EXPLORATIONS CARTOGRAPHIQUES À L’ÉCHELLE RÉGIONALE 
 ---
 
 Ce script a revient sur toutes étapes de manipulation des données DVF sous formes géographique, les processus d'analyse spatiale et la cartographie.
@@ -29,7 +29,7 @@ DVFOK <- read.csv("Exports/DVFOK.csv", stringsAsFactors=FALSE)
 ```
 
 ---
-## 1 - Spatialisation des données DVF
+## 1-Spatialisation des données DVF
 
 
 ###Transformer le csv en couche spatiale (objet sf)
@@ -52,7 +52,7 @@ st_write(DVFgeo, "Exports/MutationsBZH.shp")
 ```
 
 ---
-## Ajout de la couche géographique des communes
+## 2-Ajout de la couche géographique des communes
 
 
 ### Importer la couche des communes (Admin Express IGN) et la reprojeter
@@ -74,9 +74,9 @@ plot(depBZH["INSEE_DEP"])
 
 ---
 
-## 2- Agrégations spatiales
+## 3-Agrégations spatiales
 
-###Compter le nombre de mutations par commune
+### Compter le nombre de mutations par commune
 
 ```{r cars}
 Communes <- Communes %>% mutate(NbMutations = lengths(st_intersects(Communes, DVFgeo)))
@@ -97,7 +97,7 @@ propSymbolsLayer(x = Communes, #appel du jeu de donnée
                  legend.title.txt = "Nombre de mutations DVF") 
 ```
 
-###Compter le nombre de mutations de mutations de maisons et d'appartements
+### Compter le nombre de mutations de mutations de maisons et d'appartements
 
 ```{r cars}
 Maisons <- DVFgeo %>% filter(type=='Maison')
@@ -155,7 +155,7 @@ Communes2 <- as.data.frame(Communes2) %>% select(INSEE_COM, PrixMoyen, Prixm2Moy
 CommunesOK <- merge(Communes,Communes2, by="INSEE_COM")
 ```
 
-###Ecrire un shapfile pour cartographier les données dans un logiciel tiers
+### Ecrire un shapfile pour cartographier les données dans un logiciel tiers
 
 ```{r cars}
 st_write(CommunesOK, "Exports/CommunesBZHDVF.shp")
@@ -163,7 +163,7 @@ st_write(depBZH, "Exports/Departements.shp")
 ```
 
 
-###Cartographie du prix moyen au m2 par commune
+### Cartographie du prix moyen au m2 par commune
 
 ```{r cars}
 choroLayer(
@@ -176,7 +176,7 @@ choroLayer(
 title(main = "Prix moyen au m² par communes (2014-2019)")
 ```
 
-###Cartographie du prix moyen par commune
+### Cartographie du prix moyen par commune
 
 ```{r cars}
 choroLayer(
@@ -218,7 +218,7 @@ choroLayer(
 title(main = "Prix moyen au m2 par carreaux de 2km (2014-2019)")
 ```
 
-###Ecrire un shapfile pour cartographier les données dans un logiciel tiers
+### Ecrire un shapfile pour cartographier les données dans un logiciel tiers
 
 ```{r cars}
 st_write(grillem2, "Exports/grillem2.shp")
