@@ -191,7 +191,7 @@ title(main = "Prix moyen des mutations par communes (2014-2019)")
 
 ---
 
-#### Creer un carroyage de 2km et calculer le prix moyen au m2)
+### Créer un carroyage de 2km et calculer le prix moyen au m2)
 
 ```{r cars}
 grille <- st_make_grid(
