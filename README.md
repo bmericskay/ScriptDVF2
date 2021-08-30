@@ -1,20 +1,22 @@
 ---
-title: "Script2"
-author: "Boris Mericskay"
-date: "02/07/2021"
+title: "Préparation DVF"
+author: "Boris Mericskay et Florent Demoraes"
+date: "01/09/2021"
 output: html_document
 ---
 
-# EXPLORATIONS CARTOGRAPHIQUES À L’ÉCHELLE RÉGIONALE 
+
 ---
 
-Ce script a revient sur toutes étapes de manipulation des données DVF sous formes géographique, les processus d'analyse spatiale et la cartographie.
+#  INDICATEURS GENERIQUES ET VISUALISATIONS DE DONNEES
+---
+Ce deuxième script a comme objectif de produire et de représenter graphiquement sous diverses formes une série d'indicateurs génériques sur le marché immobilier résidentiel
+
+Seul le package `tidyverse` dédié à la manipulation de données est nécessaire.
 
 ```{r cars}
-library(sf)
-library(cartography)
+library(tidyverse)
 ```
-
 ### Définition de l'environnement de travail
 
 ```{r setup}
@@ -22,211 +24,152 @@ library(cartography)
 knitr::opts_knit$set(root.dir = 'D:/DVF/BZH')
 ```
 
-### Importer le jeux de données (si nécessaire)
+
+
+## Tableau récapitulatif des indicateurs génériques
 
 ```{r cars}
-DVFOK <- read.csv("Exports/DVFOK.csv", stringsAsFactors=FALSE)
-```
+recap <- DVFOK %>% group_by(type) %>% summarise(tot = n (), prixmed = median(prix), prixmoy = mean(prix), surfmed = median(surface), surfmoy = mean(surface), prixm2med = median(prixm2), prixm2moy = mean(prixm2))
 
----
-## 1-Spatialisation des données DVF
-
-
-###Transformer le csv en couche spatiale (objet sf)
-
-```{r cars}
-DVFgeo<- st_as_sf(DVFOK, coords=c("longitude","latitude"), crs=4326)
-```
-
-### Reprojeter la couche en SCR_2154
-
-```{r cars}
-DVFgeo<- st_transform(DVFgeo, 2154)
-st_crs(DVFgeo)
-```
-
-### Ecrire un shapefile (pour une utilisation dans SIG par exemple)
-
-```{r cars}
-st_write(DVFgeo, "Exports/MutationsBZH.shp")
-```
-
----
-## 2-Ajout de la couche géographique des communes
-
-
-### Importer la couche des communes (Admin Express IGN) et la reprojeter
-
-```{r cars}
-Communes <- st_read(dsn = "DATA/Communes.shp", stringsAsFactors = FALSE)
-plot(Communes["INSEE_DEP"])
-Communes<- st_transform(Communes, 2154)
-st_crs(Communes)
+recap <- recap %>% mutate(part = (tot/sum(tot)*100))
 ```
 
 
-###Fusion des communes pour recuperer les contours des departements
 
-```{r cars}
-depBZH <- Communes %>% group_by(INSEE_DEP) %>% summarize()
-plot(depBZH["INSEE_DEP"])
-```
-
+## Visualisation de données avec ggplot2
 ---
 
-## 3-Agrégations spatiales
-
-### Compter le nombre de mutations par commune
+### Récapitulatif des ventes par département
 
 ```{r cars}
-Communes <- Communes %>% mutate(NbMutations = lengths(st_intersects(Communes, DVFgeo)))
-sum(Communes$NbMutations)
+recapdep <- DVFOK %>% group_by(Dep, type) %>% summarise(nb= n())
 
-par(mar=c(0,0,0.9,0))
-
-plot(st_geometry(depBZH), #appel du jeu de donnée 
-     border = "#000000", #couleur de la bordure des départements
-     lwd = 0.5) 
-
-propSymbolsLayer(x = Communes, #appel du jeu de donnée
-                 var = "NbMutations", #appel de la variable à cartographier
-                 col = "#F97B64", #couleur cercles
-                 border = "#FFFFFF",  #couleur cordure cercle
-                 inches = 0.3, #Taille des cercles
-                 fixmax = max(Communes$NbMutations),
-                 legend.title.txt = "Nombre de mutations DVF") 
+ggplot(recapdep, aes(x=Dep, y=nb, fill=type)) +
+  geom_bar(position = 'stack', stat='identity') +
+  xlab("") +  ylab("Nombre de mutations") +
+  geom_text(aes(label=nb), color="black", size=4, position = position_stack(vjust = 0.5))+
+  theme_bw()
 ```
 
-### Compter le nombre de mutations de mutations de maisons et d'appartements
+### Recapitulatif des ventes par TypoINSEE
 
 ```{r cars}
-Maisons <- DVFgeo %>% filter(type=='Maison')
-Appartements <- DVFgeo %>% filter(type=="Appartement")
+recapinsee <- DVFOK %>% group_by(Typo_INSEE, type) %>% summarise(nb= n())
 
-Communes <- Communes %>% mutate(NbMaisons = lengths(st_intersects(Communes, Maisons)))%>% mutate(NbAppart = lengths(st_intersects(Communes, Appartements)))
+ggplot(recapinsee, aes(x=Typo_INSEE, y=nb, fill=type)) +
+  geom_bar(position = 'stack', stat='identity') +
+  geom_text(aes(label=nb), color="black", size=4, position = position_stack(vjust = 0.5))+
+  xlab("") +  ylab("Nombre de mutations") +
+  theme_bw()
 ```
 
-
-### Cartographie du nombre de ventes de maisons
+### Histogramme des prix au m2 par département
 
 ```{r cars}
-par(mar=c(0,0,0.9,0))
+RecapPrixDep <- DVFOK %>% group_by(Dep, type) %>% mutate(moydeptype = mean(prixm2))
+RecapPrixDep$ moydeptype <- round(RecapPrixDep$moydeptype)
 
-plot(st_geometry(depBZH), #appel du jeu de donnée 
-     border = "#000000", #couleur de la bordure des départements
-     lwd = 0.5) 
-
-propSymbolsLayer(x = Communes, #appel du jeu de donnée
-                 var = "NbMaisons", #appel de la variable à cartographier
-                 col = "#2ECC40", #couleur cercles
-                 border = "#000000",  #couleur cordure cercle
-                 inches = 0.3, #Taille des cercles
-                 fixmax = max(Communes$NbMutations),
-                 legend.title.txt = "Nombre de mutations DVF - Maisons") 
+ggplot(RecapPrixDep, aes(x=prixm2, fill= type)) +
+  geom_histogram(position = "identity", color = "white") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "bold")) +
+  geom_vline(aes(xintercept=moydeptype),color="black", linetype="longdash", size=0.75) +
+  xlab("Prix au m2") +  ylab("Effectifs") +
+  geom_text(y = 5500, aes(x = moydeptype, label = moydeptype), size = 3, hjust = -.3) +
+  facet_grid(type~Dep)
 ```
 
+### Histogramme des prix m2 par TypoINSEE
+```{r cars}
+RecapPrixTypoINSEE <- DVFOK %>% group_by(Typo_INSEE, type) %>% mutate(moyeinseetype = mean(prixm2))
+RecapPrixTypoINSEE$ moyeinseetype <- round(RecapPrixTypoINSEE$moyeinseetype)
 
-### Cartographie du nombre de ventes d'appartements
+ggplot(RecapPrixTypoINSEE, aes(x=prixm2, fill= type)) +
+  theme_bw() +
+  theme(strip.text = element_text(face = "bold")) +
+    geom_histogram(position = "identity", color = "white") +
+  geom_vline(aes(xintercept=moyeinseetype),color="black", linetype="longdash", size=0.75) +
+  xlab("Prix au m2") +  ylab("Effectifs") +
+  geom_text(y = 5000, aes(x = moyeinseetype, label = moyeinseetype), size = 3, hjust = -.1) +
+  facet_grid(type~Typo_INSEE)
+```
+
+### Evolution du nombre de mutations par années et par département
 
 ```{r cars}
-par(mar=c(0,0,0.9,0))
 
-plot(st_geometry(depBZH), #appel du jeu de donnée 
-     border = "#000000", #couleur de la bordure des départements
-     lwd = 0.5) 
+evoldvfdep <- DVFOK %>% group_by(annee, Dep, type) %>% summarise(nb = n())
+View(evoldvfdep)
 
-propSymbolsLayer(x = Communes, #appel du jeu de donnée
-                 var = "NbAppart", #appel de la variable à cartographier
-                 col = "#F012BE", #couleur cercles
-                 border = "#000000",  #couleur cordure cercle
-                 inches = 0.3, #Taille des cercles
-                 fixmax = max(Communes$NbMutations),
-                 legend.title.txt = "Nombre de mutations DVF -  Appartements") 
-
+ggplot(data=evoldvfdep, aes(x=annee, y=nb, fill=type)) +
+  geom_bar(stat="identity") +
+  xlab("Année") +  ylab("Nb de mutations") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "bold")) +
+  facet_wrap(~Dep, nrow = 1)
 ```
 
-### Calculer le prix nominal moyen, le prix moyen au m2 et la surface moyenne par commune
+### Evolution du nombre de mutations par années et par type de commune
 
 ```{r cars}
-Communes2 <- Communes %>% st_join(DVFgeo) %>% group_by(INSEE_COM) %>% 
-summarise(PrixMoyen = mean(prix), Prixm2Moyen = mean(prixm2), SurfaceMoyenne = mean(surface))
-Communes2 <- as.data.frame(Communes2) %>% select(INSEE_COM, PrixMoyen, Prixm2Moyen, SurfaceMoyenne)
 
-CommunesOK <- merge(Communes,Communes2, by="INSEE_COM")
+evoldvfINSEE <- DVFOK %>% group_by(annee, Typo_INSEE, type) %>% summarise(nb = n())
+
+ggplot(data=evoldvfINSEE, aes(x=annee, y=nb, fill=type)) +
+  geom_bar(stat="identity") +
+  xlab("Année") +  ylab("Nb de mutations") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "bold")) +
+  facet_wrap(~Typo_INSEE, nrow = 1)
+
 ```
 
-### Ecrire un shapfile pour cartographier les données dans un logiciel tiers
+### Evolution des prix au m2 par département
+
 
 ```{r cars}
-st_write(CommunesOK, "Exports/CommunesBZHDVF.shp")
-st_write(depBZH, "Exports/Departements.shp")
+DVFOK$annee <- as.numeric(DVFOK$annee)
+
+EvolPrixDep <- DVFOK %>% group_by(annee, Dep, type) %>% summarise(prix_m2 = mean(prixm2))
+
+ggplot(data=EvolPrixDep, aes(x=annee, y=prix_m2, color=type)) +
+  geom_line(stat="identity", size= 1)+
+  geom_point(stat="identity", size= 2)+
+  scale_y_continuous(breaks=c(1500, 1700,1900, 2100, 2300, 2500, 2700)) +
+  theme_bw() +
+  theme(strip.text = element_text(face = "bold")) +
+  xlab("") +  ylab("Prix moyen au m²") + 
+  facet_wrap(~Dep, nrow = 1) 
 ```
 
 
-### Cartographie du prix moyen au m2 par commune
+### Evolution des prix au m2 par type de comumune INSEE
 
 ```{r cars}
-choroLayer(
-  x = CommunesOK, 
-  var = "Prixm2Moyen", 
-  breaks = c(300, 1000, 1500, 2000, 2500, 5000),
-  col = c("#1a9641", "#a6d96a", "#ffffbf", "#fdae61","#d7191c"),
-  lwd = 0.1,
-  legend.title.txt = "Prix moyen/m² (euros)")
-title(main = "Prix moyen au m² par communes (2014-2019)")
+EvolPrixINSEE <- DVFOK %>% group_by(annee, Typo_INSEE, type) %>% summarise(prix_m2 = mean(prixm2))
+
+ggplot(data=EvolPrixINSEE, aes(x=annee, y=prix_m2, color=type)) +
+  geom_line(stat="identity", size= 1)+
+  geom_point(stat="identity", size= 2)+
+  scale_y_continuous(breaks=c(1500, 1700,1900, 2100, 2300, 2500, 2700)) +
+  theme_bw() +
+  theme(strip.text = element_text(face = "bold")) +
+  xlab("") +  ylab("Prix moyen au m²") + 
+  facet_wrap(~Typo_INSEE, nrow = 1)
 ```
 
-### Cartographie du prix moyen par commune
+### BoxPlot des Prix par type de bien, type de commune et département
 
 ```{r cars}
-choroLayer(
-  x = CommunesOK, 
-  var = "PrixMoyen", 
-  breaks = c(40000, 100000, 140000, 160000, 200000, 500000),
-  col = c("#2166ac","#67a9cf", "#fddbc7","#f4a582","#ca0020"),
-  lwd = 0.1,
-  legend.title.txt = "Prix moyen/m² (euros)")
-title(main = "Prix moyen des mutations par communes (2014-2019)")
+DVFOK$Typo_INSEE <- factor(DVFOK$Typo_INSEE ,levels = c("Espace rural", "Couronne périurbaine", "Pôle urbain"))
+
+
+ggplot(data = DVFOK, aes(x = Typo_INSEE, y = prix, color = type)) +
+  geom_boxplot(notchwidth = 0.5) +
+  ylim(0,200000)+
+  facet_grid(type~Dep) +
+  labs(x= "Type de commune", y= "Prix") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "bold") ,axis.text.x = element_text(angle = 45, hjust = 1))
 ```
-
----
-
-### Créer un carroyage de 2km et calculer le prix moyen au m2)
-
-```{r cars}
-grille <- st_make_grid(
-  Communes,
-  cellsize = 2000,
-  crs = 2154,
-  what = "polygons",
-  square = TRUE)
-
-grille <- st_sf(grille)
-grille <- grille %>% mutate(id = row_number())
-grille <- grille %>% mutate(IDOK = id)
-
-grillem2 <- grille %>% st_join(DVFgeo) %>%  group_by(IDOK) %>%
-  summarise( Nb_Mutation = n(), prixm2moyen = mean(prixm2))
-
-choroLayer(
-  x = grillem2,
-  var = "prixm2moyen",
-  breaks = c(300, 1000, 1500, 2000, 2500, 5000),
-  col = c("#1a9641", "#a6d96a", "#ffffbf", "#fdae61", "#d7191c"),
-  lwd = 0.1,
-  legend.title.txt = "Prix moyenau m2 (euros)")
-title(main = "Prix moyen au m2 par carreaux de 2km (2014-2019)")
-```
-
-### Ecrire un shapfile pour cartographier les données dans un logiciel tiers
-
-```{r cars}
-st_write(grillem2, "Exports/grillem2.shp")
-```
-
----
-
-
-## Lissage spatial
-
 
