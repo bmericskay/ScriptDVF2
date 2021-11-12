@@ -1,47 +1,59 @@
 ---
-title: "Préparation DVF"
+title: "Script 2"
 author: "Boris Mericskay et Florent Demoraes"
-date: "01/09/2021"
+date: "07/10/2021"
 output: html_document
 ---
 
 
 ---
 
-#  INDICATEURS GENERIQUES ET VISUALISATIONS DE DONNEES
+INDICATEURS GENERIQUES ET REPRESENTATION DE DONNEES
 ---
 Ce deuxième script a comme objectif de produire et de représenter graphiquement sous diverses formes une série d'indicateurs génériques sur le marché immobilier résidentiel
 
-Seul le package `tidyverse` dédié à la manipulation de données est nécessaire.
+## Préparation du projet
 
-```{r cars}
-library(tidyverse)
-```
 ### Définition de l'environnement de travail
 
-```{r setup}
+On définit ici le dossier qui centralise les données et où les différents jeux de données seront exportés
 
-knitr::opts_knit$set(root.dir = 'D:/DVF/BZH')
+```{r setup, include=FALSE} 
+knitr::opts_knit$set(root.dir = 'C:/DVF')
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+
+```
+### Chargement des packages R nécessaires
+
+Seul le package `tidyverse` dédié à la manipulation de données est nécessaire ici.
+
+```{r}
+library(tidyverse)
 ```
 
+
+### Import du jeu de données brut
+```{r}
+DVF <- read.csv("DATA/DVF_brut.csv", encoding="UTF-8", stringsAsFactors=FALSE)
+```
+
+--- 
 
 
 ## Tableau récapitulatif des indicateurs génériques
-
-```{r cars}
+```{r}
+DVFOK <- read.csv("Exports/DVFOK.csv", encoding="UTF-8", stringsAsFactors=FALSE) # si nécessaire
 recap <- DVFOK %>% group_by(type) %>% summarise(tot = n (), prixmed = median(prix), prixmoy = mean(prix), surfmed = median(surface), surfmoy = mean(surface), prixm2med = median(prixm2), prixm2moy = mean(prixm2))
-
 recap <- recap %>% mutate(part = (tot/sum(tot)*100))
+print(recap)
 ```
 
-
+--- 
 
 ## Visualisation de données avec ggplot2
----
 
-### Récapitulatif des ventes par département
-
-```{r cars}
+### Récapitulatif des mutations par type et par département
+```{r}
 recapdep <- DVFOK %>% group_by(Dep, type) %>% summarise(nb= n())
 
 ggplot(recapdep, aes(x=Dep, y=nb, fill=type)) +
@@ -51,9 +63,9 @@ ggplot(recapdep, aes(x=Dep, y=nb, fill=type)) +
   theme_bw()
 ```
 
-### Recapitulatif des ventes par TypoINSEE
+### Recapitulatif des mutations par type et par TypoINSEE
 
-```{r cars}
+```{r}
 recapinsee <- DVFOK %>% group_by(Typo_INSEE, type) %>% summarise(nb= n())
 
 ggplot(recapinsee, aes(x=Typo_INSEE, y=nb, fill=type)) +
@@ -63,9 +75,23 @@ ggplot(recapinsee, aes(x=Typo_INSEE, y=nb, fill=type)) +
   theme_bw()
 ```
 
+### BoxPlot des prix par type de bien, type de commune et département
+
+```{r}
+DVFOK$Typo_INSEE <- factor(DVFOK$Typo_INSEE ,levels = c("Espace rural", "Couronne périurbaine", "Pôle urbain"))
+
+ggplot(data = DVFOK, aes(x = Typo_INSEE, y = prix, color = type)) +
+  geom_boxplot(notchwidth = 0.5) +
+  ylim(0,200000)+
+  facet_grid(type~Dep) +
+  labs(x= "Type de commune", y= "Prix") +
+  theme_bw() +
+  theme(strip.text = element_text(face = "bold") ,axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
 ### Histogramme des prix au m2 par département
 
-```{r cars}
+```{r}
 RecapPrixDep <- DVFOK %>% group_by(Dep, type) %>% mutate(moydeptype = mean(prixm2))
 RecapPrixDep$ moydeptype <- round(RecapPrixDep$moydeptype)
 
@@ -80,7 +106,8 @@ ggplot(RecapPrixDep, aes(x=prixm2, fill= type)) +
 ```
 
 ### Histogramme des prix m2 par TypoINSEE
-```{r cars}
+
+```{r}
 RecapPrixTypoINSEE <- DVFOK %>% group_by(Typo_INSEE, type) %>% mutate(moyeinseetype = mean(prixm2))
 RecapPrixTypoINSEE$ moyeinseetype <- round(RecapPrixTypoINSEE$moyeinseetype)
 
@@ -96,7 +123,7 @@ ggplot(RecapPrixTypoINSEE, aes(x=prixm2, fill= type)) +
 
 ### Evolution du nombre de mutations par années et par département
 
-```{r cars}
+```{r}
 
 evoldvfdep <- DVFOK %>% group_by(annee, Dep, type) %>% summarise(nb = n())
 View(evoldvfdep)
@@ -111,8 +138,7 @@ ggplot(data=evoldvfdep, aes(x=annee, y=nb, fill=type)) +
 
 ### Evolution du nombre de mutations par années et par type de commune
 
-```{r cars}
-
+```{r}
 evoldvfINSEE <- DVFOK %>% group_by(annee, Typo_INSEE, type) %>% summarise(nb = n())
 
 ggplot(data=evoldvfINSEE, aes(x=annee, y=nb, fill=type)) +
@@ -126,8 +152,7 @@ ggplot(data=evoldvfINSEE, aes(x=annee, y=nb, fill=type)) +
 
 ### Evolution des prix au m2 par département
 
-
-```{r cars}
+```{r}
 DVFOK$annee <- as.numeric(DVFOK$annee)
 
 EvolPrixDep <- DVFOK %>% group_by(annee, Dep, type) %>% summarise(prix_m2 = mean(prixm2))
@@ -145,7 +170,7 @@ ggplot(data=EvolPrixDep, aes(x=annee, y=prix_m2, color=type)) +
 
 ### Evolution des prix au m2 par type de comumune INSEE
 
-```{r cars}
+```{r}
 EvolPrixINSEE <- DVFOK %>% group_by(annee, Typo_INSEE, type) %>% summarise(prix_m2 = mean(prixm2))
 
 ggplot(data=EvolPrixINSEE, aes(x=annee, y=prix_m2, color=type)) +
@@ -158,18 +183,5 @@ ggplot(data=EvolPrixINSEE, aes(x=annee, y=prix_m2, color=type)) +
   facet_wrap(~Typo_INSEE, nrow = 1)
 ```
 
-### BoxPlot des Prix par type de bien, type de commune et département
 
-```{r cars}
-DVFOK$Typo_INSEE <- factor(DVFOK$Typo_INSEE ,levels = c("Espace rural", "Couronne périurbaine", "Pôle urbain"))
-
-
-ggplot(data = DVFOK, aes(x = Typo_INSEE, y = prix, color = type)) +
-  geom_boxplot(notchwidth = 0.5) +
-  ylim(0,200000)+
-  facet_grid(type~Dep) +
-  labs(x= "Type de commune", y= "Prix") +
-  theme_bw() +
-  theme(strip.text = element_text(face = "bold") ,axis.text.x = element_text(angle = 45, hjust = 1))
-```
 
