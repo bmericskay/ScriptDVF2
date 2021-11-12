@@ -7,9 +7,9 @@ output: html_document
 
 
 ---
-
-INDICATEURS GENERIQUES ET REPRESENTATIONS GRAPHIQUES DE DONNEES
+INDICATEURS GENERIQUES ET REPRESENTATIONS GRAPHIQUES DES DONNEES DVF
 ---
+
 Ce deuxième script a comme objectif de produire et de représenter graphiquement sous diverses formes une série d'indicateurs génériques sur le marché immobilier résidentiel
 
 ## Préparation du projet
