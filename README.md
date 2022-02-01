@@ -1,15 +1,15 @@
 ---
 title: "Script 2"
 author: "Boris Mericskay et Florent Demoraes"
-date: "07/10/2021"
+date: "12/11/2021"
 output: html_document
-
+---
 
 
 ---
+
 INDICATEURS GENERIQUES ET REPRESENTATIONS GRAPHIQUES DES DONNEES DVF
 ---
-
 Ce deuxième script a comme objectif de produire et de représenter graphiquement sous diverses formes une série d'indicateurs génériques sur le marché immobilier résidentiel
 
 ## Préparation du projet
