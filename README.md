@@ -34,7 +34,7 @@ library(tidyverse)
 
 ### Import du jeu de données brut
 ```{r}
-DVF <- read.csv("DATA/DVF_brut.csv", encoding="UTF-8", stringsAsFactors=FALSE)
+DVFOK <- read.csv("Exports/DVFOK.csv", encoding="UTF-8", stringsAsFactors=FALSE) # si nécessaire
 ```
 
 --- 
@@ -42,7 +42,6 @@ DVF <- read.csv("DATA/DVF_brut.csv", encoding="UTF-8", stringsAsFactors=FALSE)
 
 ## Tableau récapitulatif des indicateurs génériques
 ```{r}
-DVFOK <- read.csv("Exports/DVFOK.csv", encoding="UTF-8", stringsAsFactors=FALSE) # si nécessaire
 recap <- DVFOK %>% group_by(type) %>% summarise(tot = n (), prixmed = median(prix), prixmoy = mean(prix), surfmed = median(surface), surfmoy = mean(surface), prixm2med = median(prixm2), prixm2moy = mean(prixm2))
 recap <- recap %>% mutate(part = (tot/sum(tot)*100))
 print(recap)
@@ -80,10 +79,10 @@ ggplot(recapinsee, aes(x=Typo_INSEE, y=nb, fill=type)) +
 ```{r}
 DVFOK$Typo_INSEE <- factor(DVFOK$Typo_INSEE ,levels = c("Espace rural", "Couronne périurbaine", "Pôle urbain"))
 
-ggplot(data = DVFOK, aes(x = Typo_INSEE, y = prix, color = type)) +
+ggplot(data = DVFOK, aes(x = Dep, y = prix, color = type)) +
   geom_boxplot(notchwidth = 0.5) +
   ylim(0,200000)+
-  facet_grid(type~Dep) +
+  facet_grid(type~Typo_INSEE) +
   labs(x= "Type de commune", y= "Prix") +
   theme_bw() +
   theme(strip.text = element_text(face = "bold") ,axis.text.x = element_text(angle = 45, hjust = 1))
@@ -92,7 +91,7 @@ ggplot(data = DVFOK, aes(x = Typo_INSEE, y = prix, color = type)) +
 ### Histogramme des prix au m2 par département
 
 ```{r}
-RecapPrixDep <- DVFOK %>% group_by(Dep, type) %>% mutate(moydeptype = mean(prixm2))
+RecapPrixDep <- DVFOK %>% group_by(Dep, type, Typo_INSEE) %>% mutate(moydeptype = mean(prixm2))
 RecapPrixDep$ moydeptype <- round(RecapPrixDep$moydeptype)
 
 ggplot(RecapPrixDep, aes(x=prixm2, fill= type)) +
@@ -102,7 +101,7 @@ ggplot(RecapPrixDep, aes(x=prixm2, fill= type)) +
   geom_vline(aes(xintercept=moydeptype),color="black", linetype="longdash", size=0.75) +
   xlab("Prix au m2") +  ylab("Effectifs") +
   geom_text(y = 5500, aes(x = moydeptype, label = moydeptype), size = 3, hjust = -.3) +
-  facet_grid(type~Dep)
+  facet_grid(~Dep~Typo_INSEE)
 ```
 
 ### Histogramme des prix m2 par TypoINSEE
@@ -182,6 +181,23 @@ ggplot(data=EvolPrixINSEE, aes(x=annee, y=prix_m2, color=type)) +
   xlab("") +  ylab("Prix moyen au m²") + 
   facet_wrap(~Typo_INSEE, nrow = 1)
 ```
+
+### Evolution des prix au m2 par type de comumune et département
+
+```{r}
+EvolPrixINSEE <- DVFOK %>% group_by(annee, Typo_INSEE, type, Dep) %>% summarise(prix_m2 = mean(prixm2), nb= n())
+
+ggplot(data=EvolPrixINSEE, aes(x=annee, y=prix_m2, color=type)) +
+  geom_line(stat="identity", size= 1)+
+  geom_point(stat="identity", size= 2)+
+  scale_y_continuous(breaks=c(1500, 1700,1900, 2100, 2300, 2500, 2700)) +
+  theme_bw() +
+  theme(strip.text = element_text(face = "bold")) +
+  xlab("") +  ylab("Prix moyen au m²") + 
+  facet_grid(Typo_INSEE~Dep)
+```
+
+
 
 
 
